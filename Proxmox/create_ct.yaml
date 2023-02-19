@@ -1,0 +1,54 @@
+---
+
+- name: Create new LXC container
+
+  hosts: localhost
+  vars_prompt: 
+    - name: 'ProxMox_Hostname'
+      prompt: "Please input ProxMox hostname" 
+    - name: 'ProxMox_Password'
+      prompt: "Please input ProxMox password" 
+      private: true #This hides the password
+      unsafe: true #This stops special chars from breaking ansible
+    - name: 'CT_Password'
+      prompt: "Please input container password" 
+      private: true #This hides the password
+      unsafe: true #This stops special chars from breaking ansible
+    - name: 'Container_Name'
+      prompt: "Enter a unique name for your containers"
+      private: false
+  tasks:
+
+  - name: 'Create Container'
+    community.general.proxmox:
+      api_user: 'root@pam' # Proxmox user
+      api_password: '{{ ProxMox_Password }}'
+      api_host: '{{ ProxMox_Hostname }}' # Proxmox hostname
+      password: '{{ CT_Password }}' #Container password
+      hostname: '{{ Container_Name }}' # Container hostname
+      node: 'pve01' # Name of Proxmox host
+      ostemplate: 'local:vztmpl/debian-11-standard_11.6-1_amd64.tar.zst'
+      disk: '16'      
+      cpus: '1'
+      cores: '1'
+      memory: '512'
+      storage: local-zfs
+      netif: '{"net0":"name=eth0,firewall=1,ip=dhcp,bridge=vmbr0"}' #IPV6 needs to be left out and firewall enabled in order to acess the ct
+      hookscript: 'local:snippets/install_ssh.sh' #This is a script that SHOULD run at start but hookscripts are largely undocumented
+      unprivileged: true
+      description: 'created with ansible'
+      features:
+       - nesting=1
+
+  - name: Pause for 5 seconds for container to finish build
+    ansible.builtin.pause:
+      seconds: 5 #Just enough time for the vm to register a hostname to be referenced in start
+
+  - name: Start container
+    community.general.proxmox:
+      api_user: root@pam
+      api_password: '{{ ProxMox_Password }}'
+      api_host: '{{ ProxMox_Hostname }}'
+      hostname: '{{ Container_Name }}' # Container hostname
+      state: started
+
