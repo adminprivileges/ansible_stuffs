@@ -40,9 +40,9 @@
       features:
        - nesting=1
 
-  - name: Pause for 5 seconds for container to finish build
+  - name: Pause for 10 seconds for container to finish build
     ansible.builtin.pause:
-      seconds: 5 #Just enough time for the vm to register a hostname to be referenced in start
+      seconds: 10 #Just enough time for the vm to register a hostname to be referenced in start
 
   - name: Start container
     community.general.proxmox:
